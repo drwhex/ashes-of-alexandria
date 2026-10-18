@@ -1,6 +1,11 @@
 #include <AppVersion.h>
 
-// Only this translation unit receives the changing version and Git defines.
+// Only this translation unit receives the changing version and Git defines,
+// generated into the build directory by scripts/git_branch.py.
+#if __has_include(<CrossInkBuildIdentity.h>)
+#include <CrossInkBuildIdentity.h>
+#endif
+
 #ifndef CROSSINK_VERSION
 #define CROSSINK_VERSION "dev"
 #endif
