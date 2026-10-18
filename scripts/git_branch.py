@@ -234,9 +234,17 @@ def inject_version(env):
     # Keep changing source identity out of unrelated compile commands.
     if hasattr(env, 'AddBuildMiddleware'):
         def add_build_info_defines(node_env, node):
-            build_env = node_env.Clone()
-            build_env.Append(CPPDEFINES=scoped)
-            return build_env.Object(node)
+            # pioarduino on Windows folds all middlewares into one wrapper that
+            # runs for every source (framework included) and ignores the pattern,
+            # so check the path here too. Pass the defines as env.Object kwargs:
+            # that wrapper applies them, while a cloned env would compile the file
+            # a second time and clash with the framework's own build of it.
+            path = node.srcnode().get_path() if hasattr(node, 'srcnode') else str(node)
+            if not path.replace('\\', '/').endswith('src/util/BuildInfo.cpp'):
+                return node
+            return node_env.Object(
+                node, CPPDEFINES=list(node_env.get('CPPDEFINES', [])) + scoped
+            )
         env.AddBuildMiddleware(add_build_info_defines, '*src/util/BuildInfo.cpp')
     else:
         env.Append(CPPDEFINES=scoped)

@@ -1183,13 +1183,12 @@ void SettingsActivity::toggleCurrentSetting() {
         startActivityForResult(std::make_unique<ClearCacheActivity>(renderer, mappedInput), resultHandler);
         break;
       case SettingAction::CheckForUpdates:
+#if ASHES_APP_CAP_OTA
         silentRestartToNetwork(NetworkBootTarget::OTA);
+#endif
         break;
       case SettingAction::SdFirmwareUpdate:
         startActivityForResult(std::make_unique<SdFirmwareUpdateActivity>(renderer, mappedInput), resultHandler);
-        break;
-      case SettingAction::DownloadFonts:
-        silentRestartToManageFonts();
         break;
       case SettingAction::TtfRendering: {
 #if CROSSINK_SCALABLE_FONTS

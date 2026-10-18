@@ -123,19 +123,6 @@ CrossPointSettings::FONT_SIZE firstAvailableReaderFontSize() {
   return (it != std::end(READER_FONT_SIZE_STORAGE_ORDER)) ? *it : CrossPointSettings::TINY;
 }
 
-#if !CROSSINK_SCALABLE_FONTS
-int getFallbackReaderFontIdForFamily(const CrossPointSettings::FONT_FAMILY family) {
-  switch (family) {
-    case CrossPointSettings::BITTER:
-      return BITTER_10_FONT_ID;
-    case CrossPointSettings::LEXENDDECA:
-    default:
-      return LEXENDDECA_10_FONT_ID;
-  }
-}
-
-#endif
-
 // Convert legacy front button layout into explicit logical->hardware mapping.
 void applyLegacyFrontButtonLayout(CrossPointSettings& settings) {
   switch (static_cast<CrossPointSettings::FRONT_BUTTON_LAYOUT>(settings.frontButtonLayout)) {
@@ -390,28 +377,16 @@ uint8_t CrossPointSettings::legacyLineSpacingToPercent(const uint8_t legacyValue
     }
   }
 
-  switch (fontFamily) {
-    case BITTER:
-      switch (legacyValue) {
-        case TIGHT:
-          return 95;
-        case WIDE:
-          return 130;
-        case NORMAL:
-        default:
-          return 110;
-      }
-    case LEXENDDECA:
+  // Bitter is the only built-in family; legacy Lexend Deca settings load as Bitter.
+  (void)fontFamily;
+  switch (legacyValue) {
+    case TIGHT:
+      return 95;
+    case WIDE:
+      return 130;
+    case NORMAL:
     default:
-      switch (legacyValue) {
-        case TIGHT:
-          return 90;
-        case WIDE:
-          return 120;
-        case NORMAL:
-        default:
-          return 100;
-      }
+      return 110;
   }
 }
 
@@ -1346,39 +1321,19 @@ int CrossPointSettings::getReaderFontId() const {
 
 int CrossPointSettings::getBuiltInReaderFontId() const {
 #if CROSSINK_SCALABLE_FONTS
-  return scalableBuiltinReaderFontId(fontFamily == BITTER ? 1 : 0, closestBuiltinReaderPointSize(readerFontPointSize));
+  return scalableBuiltinReaderFontId(0, closestBuiltinReaderPointSize(readerFontPointSize));
 #else
-  const FONT_SIZE effectiveSize = getEffectiveReaderFontSize();
-
-  switch (fontFamily) {
-    case LEXENDDECA:
+  // Bitter is the only built-in family.
+  switch (getEffectiveReaderFontSize()) {
+    case TINY:
+      return BITTER_10_FONT_ID;
+    case SMALL:
+      return BITTER_12_FONT_ID;
+    case LARGE:
+      return BITTER_16_FONT_ID;
+    case MEDIUM:
     default:
-      switch (effectiveSize) {
-        case TINY:
-          return LEXENDDECA_10_FONT_ID;
-        case SMALL:
-          return LEXENDDECA_12_FONT_ID;
-        case MEDIUM:
-        default:
-          return LEXENDDECA_14_FONT_ID;
-        case LARGE:
-          return LEXENDDECA_16_FONT_ID;
-      }
-      return getFallbackReaderFontIdForFamily(LEXENDDECA);
-    case BITTER:
-      switch (effectiveSize) {
-        case TINY:
-          return BITTER_10_FONT_ID;
-        case SMALL:
-          return BITTER_12_FONT_ID;
-        case MEDIUM:
-        default:
-          return BITTER_14_FONT_ID;
-        case LARGE:
-          return BITTER_16_FONT_ID;
-      }
-      return getFallbackReaderFontIdForFamily(BITTER);
+      return BITTER_14_FONT_ID;
   }
-  return getFallbackReaderFontIdForFamily(static_cast<FONT_FAMILY>(fontFamily));
 #endif
 }

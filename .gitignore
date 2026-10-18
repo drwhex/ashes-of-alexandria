@@ -51,3 +51,13 @@ dist-publish/
 /sdkconfig.*
 
 lib/ScalableFont/*.generated.h
+
+# Ashes of Alexandria: never commit built firmware or build outputs.
+*.bin
+*.elf
+*.map
+*.hex
+*.uf2
+firmware*.bin
+/firmware/
+/release/

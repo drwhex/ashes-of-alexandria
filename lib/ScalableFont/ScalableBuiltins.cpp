@@ -10,27 +10,25 @@
 #include "HalScalableFont.h"
 #include "ScalableAssets.generated.h"
 namespace {
-std::optional<HalScalableFont> faces[8];
-bool ready[2] = {};
-const uint8_t* const assets[] = {lexenddeca_regularOutline,    lexenddeca_boldOutline,  lexenddeca_italicOutline,
-                                 lexenddeca_bolditalicOutline, bitter_regularOutline,   bitter_boldOutline,
-                                 bitter_italicOutline,         bitter_bolditalicOutline};
-constexpr size_t lengths[] = {sizeof(lexenddeca_regularOutline), sizeof(lexenddeca_boldOutline),
-                              sizeof(lexenddeca_italicOutline),  sizeof(lexenddeca_bolditalicOutline),
-                              sizeof(bitter_regularOutline),     sizeof(bitter_boldOutline),
-                              sizeof(bitter_italicOutline),      sizeof(bitter_bolditalicOutline)};
-constexpr int ids[2][4] = {{LEXENDDECA_10_FONT_ID, LEXENDDECA_12_FONT_ID, LEXENDDECA_14_FONT_ID, LEXENDDECA_16_FONT_ID},
-                           {BITTER_10_FONT_ID, BITTER_12_FONT_ID, BITTER_14_FONT_ID, BITTER_16_FONT_ID}};
+// Ashes of Alexandria embeds only Bitter (family 0, four styles).
+constexpr unsigned FamilyCount = 1;
+std::optional<HalScalableFont> faces[FamilyCount * 4];
+bool ready[FamilyCount] = {};
+const uint8_t* const assets[] = {bitter_regularOutline, bitter_boldOutline, bitter_italicOutline,
+                                 bitter_bolditalicOutline};
+constexpr size_t lengths[] = {sizeof(bitter_regularOutline), sizeof(bitter_boldOutline),
+                              sizeof(bitter_italicOutline), sizeof(bitter_bolditalicOutline)};
+constexpr int ids[FamilyCount][4] = {{BITTER_10_FONT_ID, BITTER_12_FONT_ID, BITTER_14_FONT_ID, BITTER_16_FONT_ID}};
 }  // namespace
 int scalableBuiltinFontId(int id) {
-  for (unsigned f = 0; f < 2; ++f)
+  for (unsigned f = 0; f < FamilyCount; ++f)
     for (unsigned s = 0; s < 4; ++s)
       if (ids[f][s] == id && !ready[f]) return UI_12_FONT_ID;
   const int result = int(uint32_t(id) ^ OutlineFingerprint ^ 0x53544600u ^ HalScalableFont::renderingRevision());
   return result ? result : 1;
 }
 int scalableBuiltinReaderFontId(unsigned family, unsigned points) {
-  if (family >= 2 || !ready[family]) return UI_12_FONT_ID;
+  if (family >= FamilyCount || !ready[family]) return UI_12_FONT_ID;
   // Preserve existing cache IDs for the original four sizes.
   for (unsigned s = 0; s < 4; ++s)
     if (points == 10 + s * 2) return scalableBuiltinFontId(ids[family][s]);
@@ -38,7 +36,7 @@ int scalableBuiltinReaderFontId(unsigned family, unsigned points) {
 }
 void ensureScalableBuiltinFamily(GfxRenderer& renderer, unsigned family) {
   ScalableFontAccess access;
-  if (family >= 2 || ready[family]) return;
+  if (family >= FamilyCount || ready[family]) return;
   bool ok = true;
   for (unsigned style = 0; style < 4; ++style) {
     unsigned i = family * 4 + style;

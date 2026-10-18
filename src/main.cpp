@@ -98,7 +98,6 @@ inline esp_sleep_wakeup_cause_t esp_sleep_get_wakeup_cause() { return ESP_SLEEP_
 #include "activities/reader/ReaderUtils.h"
 #include "activities/reader/ReadingStatsUtils.h"
 #include "activities/reader/StatsBackup.h"
-#include "activities/settings/FontDownloadActivity.h"
 #include "activities/settings/KOReaderAuthActivity.h"
 #include "activities/settings/KOReaderSettingsActivity.h"
 #include "activities/settings/OtaUpdateActivity.h"
@@ -106,6 +105,7 @@ inline esp_sleep_wakeup_cause_t esp_sleep_get_wakeup_cause() { return ESP_SLEEP_
 #include "components/UITheme.h"
 #include "components/icons/tablerFilledIcons.h"
 #include "fontIds.h"
+#include "network/FirmwareFlasher.h"
 #include "network/UsbSerialFileTransfer.h"
 #ifdef SIMULATOR
 #include <SimulatorLifecycle.h>
@@ -179,30 +179,6 @@ static void logBootHeap(const char* stage) {
 
 // Fonts
 #if !CROSSINK_SCALABLE_FONTS
-EpdFont lexenddeca10RegularFont(&lexenddeca_10_regular);
-EpdFont lexenddeca10BoldFont(&lexenddeca_10_bold);
-EpdFont lexenddeca10ItalicFont(&lexenddeca_10_italic);
-EpdFont lexenddeca10BoldItalicFont(&lexenddeca_10_bolditalic);
-EpdFontFamily lexenddeca10FontFamily(&lexenddeca10RegularFont, &lexenddeca10BoldFont, &lexenddeca10ItalicFont,
-                                     &lexenddeca10BoldItalicFont);
-EpdFont lexenddeca12RegularFont(&lexenddeca_12_regular);
-EpdFont lexenddeca12BoldFont(&lexenddeca_12_bold);
-EpdFont lexenddeca12ItalicFont(&lexenddeca_12_italic);
-EpdFont lexenddeca12BoldItalicFont(&lexenddeca_12_bolditalic);
-EpdFontFamily lexenddeca12FontFamily(&lexenddeca12RegularFont, &lexenddeca12BoldFont, &lexenddeca12ItalicFont,
-                                     &lexenddeca12BoldItalicFont);
-EpdFont lexenddeca14RegularFont(&lexenddeca_14_regular);
-EpdFont lexenddeca14BoldFont(&lexenddeca_14_bold);
-EpdFont lexenddeca14ItalicFont(&lexenddeca_14_italic);
-EpdFont lexenddeca14BoldItalicFont(&lexenddeca_14_bolditalic);
-EpdFontFamily lexenddeca14FontFamily(&lexenddeca14RegularFont, &lexenddeca14BoldFont, &lexenddeca14ItalicFont,
-                                     &lexenddeca14BoldItalicFont);
-EpdFont lexenddeca16RegularFont(&lexenddeca_16_regular);
-EpdFont lexenddeca16BoldFont(&lexenddeca_16_bold);
-EpdFont lexenddeca16ItalicFont(&lexenddeca_16_italic);
-EpdFont lexenddeca16BoldItalicFont(&lexenddeca_16_bolditalic);
-EpdFontFamily lexenddeca16FontFamily(&lexenddeca16RegularFont, &lexenddeca16BoldFont, &lexenddeca16ItalicFont,
-                                     &lexenddeca16BoldItalicFont);
 EpdFont bitter10RegularFont(&bitter_10_regular);
 EpdFont bitter10BoldFont(&bitter_10_bold);
 EpdFont bitter10ItalicFont(&bitter_10_italic);
@@ -471,7 +447,6 @@ void silentRestartToNetwork(const NetworkBootTarget target, const uint32_t paylo
   restartWithSilentToken();
 }
 
-void silentRestartToManageFonts() { silentRestartToNetwork(NetworkBootTarget::MANAGE_FONTS); }
 
 static uint32_t encodeKOReaderSyncOrientation(const uint8_t orientation) {
   return orientation < CrossPointSettings::ORIENTATION_COUNT ? static_cast<uint32_t>(orientation) + 1 : 0;
@@ -1175,10 +1150,6 @@ void setupDisplayAndFonts(const bool seamless, const bool loadReaderResources, c
   renderer.setFontCacheManager(&fontCacheManager);
 
 #if !CROSSINK_SCALABLE_FONTS
-  renderer.insertFont(LEXENDDECA_10_FONT_ID, lexenddeca10FontFamily);
-  renderer.insertFont(LEXENDDECA_12_FONT_ID, lexenddeca12FontFamily);
-  renderer.insertFont(LEXENDDECA_14_FONT_ID, lexenddeca14FontFamily);
-  renderer.insertFont(LEXENDDECA_16_FONT_ID, lexenddeca16FontFamily);
   renderer.insertFont(BITTER_10_FONT_ID, bitter10FontFamily);
   renderer.insertFont(BITTER_12_FONT_ID, bitter12FontFamily);
   renderer.insertFont(BITTER_14_FONT_ID, bitter14FontFamily);
@@ -1193,6 +1164,31 @@ void setupDisplayAndFonts(const bool seamless, const bool loadReaderResources, c
     LOG_DBG("MAIN", "Skipping EPUB scratch workspace and SD fonts for minimal network boot");
   }
 }
+
+#ifndef SIMULATOR
+// SD-root file that is flashed unconditionally on the next boot. The file is
+// removed after every attempt, successful or not, so a bad image cannot cause
+// a flash loop; copy it again to retry.
+constexpr char EMERGENCY_FIRMWARE_PATH[] = "/force_update.bin";
+
+void applyEmergencyFirmwareUpdate() {
+  if (!Storage.exists(EMERGENCY_FIRMWARE_PATH)) return;
+
+  LOG_INF("BOOT", "Emergency firmware update: %s found", EMERGENCY_FIRMWARE_PATH);
+  // flashFromSdPath validates the whole image (magic, segments, checksum, SHA,
+  // chip id, board tag) before it erases anything, then switches otadata.
+  const auto result = firmware_flash::flashFromSdPath(EMERGENCY_FIRMWARE_PATH, nullptr, nullptr);
+  Storage.remove(EMERGENCY_FIRMWARE_PATH);
+  if (result != firmware_flash::Result::OK) {
+    LOG_ERR("BOOT", "Emergency firmware update failed: %s", firmware_flash::resultName(result));
+    return;
+  }
+
+  LOG_INF("BOOT", "Emergency firmware update complete, restarting");
+  delay(2000);
+  ESP.restart();
+}
+#endif
 
 void setup() {
 #ifdef SIMULATOR
@@ -1341,6 +1337,13 @@ void setup() {
   }
   logBootHeap("storage ready");
 
+#ifndef SIMULATOR
+  // Emergency firmware flash from SD (ported from Papyrix). Runs before
+  // settings, display and UI init so a firmware that cannot reach its UI can
+  // still be replaced. Keep any new boot code below this block.
+  applyEmergencyFirmwareUpdate();
+#endif
+
   HalSystem::checkPanic();
 
   SETTINGS.loadFromFile();
@@ -1394,7 +1397,7 @@ void setup() {
             (BoardConfig::isX4Pro() || CROSSINK_APP_DEVICE_X4CLASSIC) ? "DOWN" : "UP");
   }
 
-  LOG_DBG("MAIN", "Starting CrossInk version %s", AppVersion::version());
+  LOG_DBG("MAIN", "Starting Ashes of Alexandria version %s", AppVersion::version());
   logMemoryStats("Boot");
 
   // Resolve the single boot-presentation decision. Skipping the splash also
@@ -1538,17 +1541,9 @@ void setup() {
       case NetworkBootTarget::FILE_TRANSFER:
         launched = activityManager.resumeFileTransferFromNetworkBoot(snapshotPayload);
         break;
-      case NetworkBootTarget::MANAGE_FONTS: {
-        auto fontsActivity = makeUniqueNoThrow<FontDownloadActivity>(renderer, mappedInputManager);
-        if (fontsActivity) {
-          activityManager.replaceActivity(std::move(fontsActivity));
-          launched = true;
-        } else {
-          LOG_ERR("MAIN", "OOM: Manage Fonts activity after minimal boot (free=%u maxAlloc=%u)", ESP.getFreeHeap(),
-                  ESP.getMaxAllocHeap());
-        }
+      case NetworkBootTarget::MANAGE_FONTS:
+        // Font downloads are removed in Ashes of Alexandria; a stale RTC target falls back to Home.
         break;
-      }
     }
     if (!launched) {
       LOG_ERR("MAIN", "Minimal network boot target failed; returning home");

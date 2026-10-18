@@ -19,11 +19,9 @@
 #include "RecentBooksStore.h"
 #include "components/themes/BaseTheme.h"
 #include "components/themes/dashboard/DashboardTheme.h"
-#include "components/themes/lyra/Lyra3CoversTheme.h"
 #include "components/themes/lyra/LyraCarouselTheme.h"
 #include "components/themes/lyra/LyraTheme.h"
 #include "components/themes/minimal/MinimalTheme.h"
-#include "components/themes/roundedraff/RoundedRaffTheme.h"
 
 namespace {
 constexpr char kWidthPlaceholder[] = "[WIDTH]";
@@ -63,6 +61,11 @@ UITheme::UITheme() : currentMetrics(&LyraMetrics::values), currentTheme(std::mak
 }
 
 void UITheme::reload() {
+  // Only Default (raw MINIMAL) and Lyra remain; a removed theme saved by an
+  // older build becomes Default so theme-specific Home logic stays consistent.
+  if (SETTINGS.uiTheme != CrossPointSettings::UI_THEME::LYRA) {
+    SETTINGS.uiTheme = CrossPointSettings::UI_THEME::MINIMAL;
+  }
   auto themeType = static_cast<CrossPointSettings::UI_THEME>(SETTINGS.uiTheme);
   setTheme(themeType);
 }
@@ -80,56 +83,18 @@ bool UITheme::supportsCoverGrid() {
 #endif
 }
 
-bool UITheme::hasCoverGridHome() {
-  return SETTINGS.uiTheme == CrossPointSettings::UI_THEME::COVER_GRID && supportsCoverGrid();
-}
+// The Cover Grid theme was removed in Ashes of Alexandria.
+bool UITheme::hasCoverGridHome() { return false; }
 
 void UITheme::setTheme(CrossPointSettings::UI_THEME type) {
-  if (type == CrossPointSettings::UI_THEME::COVER_GRID && !supportsCoverGrid()) {
-    type = CrossPointSettings::UI_THEME::LYRA;
-  }
-  switch (type) {
-    case CrossPointSettings::UI_THEME::CLASSIC:
-      LOG_DBG("UI", "Using Classic theme");
-      currentTheme = std::make_unique<BaseTheme>();
-      currentMetrics = &BaseMetrics::values;
-      break;
-    case CrossPointSettings::UI_THEME::COVER_GRID:
-    case CrossPointSettings::UI_THEME::LYRA:
-      LOG_DBG("UI", "Using Lyra theme");
-      currentTheme = std::make_unique<LyraTheme>();
-      currentMetrics = &LyraMetrics::values;
-      break;
-    case CrossPointSettings::UI_THEME::ROUNDEDRAFF:
-      LOG_DBG("UI", "Using RoundedRaff theme");
-      currentTheme = std::make_unique<RoundedRaffTheme>();
-      currentMetrics = &RoundedRaffMetrics::values;
-      break;
-    case CrossPointSettings::UI_THEME::LYRA_3_COVERS:
-      LOG_DBG("UI", "Using Lyra 3 Covers theme");
-      currentTheme = std::make_unique<Lyra3CoversTheme>();
-      currentMetrics = &Lyra3CoversMetrics::values;
-      break;
-    case CrossPointSettings::UI_THEME::LYRA_CAROUSEL:
-      LOG_DBG("UI", "Using Lyra Carousel theme");
-      currentTheme = std::make_unique<LyraCarouselTheme>();
-      currentMetrics = &LyraCarouselMetrics::values;
-      break;
-    case CrossPointSettings::UI_THEME::MINIMAL:
-      LOG_DBG("UI", "Using Minimal theme");
-      currentTheme = std::make_unique<MinimalTheme>();
-      currentMetrics = &MinimalMetrics::values;
-      break;
-    case CrossPointSettings::UI_THEME::DASHBOARD:
-      LOG_DBG("UI", "Using Dashboard theme");
-      currentTheme = std::make_unique<DashboardTheme>();
-      currentMetrics = &DashboardMetrics::values;
-      break;
-    default:
-      LOG_ERR("UI", "Unknown theme %d, falling back to Classic", static_cast<int>(type));
-      currentTheme = std::make_unique<BaseTheme>();
-      currentMetrics = &BaseMetrics::values;
-      break;
+  if (type == CrossPointSettings::UI_THEME::LYRA) {
+    LOG_DBG("UI", "Using Lyra theme");
+    currentTheme = std::make_unique<LyraTheme>();
+    currentMetrics = &LyraMetrics::values;
+  } else {
+    LOG_DBG("UI", "Using Default theme");
+    currentTheme = std::make_unique<MinimalTheme>();
+    currentMetrics = &MinimalMetrics::values;
   }
   metricsValid = false;
 }

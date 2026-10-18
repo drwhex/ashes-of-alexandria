@@ -31,10 +31,10 @@ JS_OUT = os.path.join(OUT, "js")
 
 # slug -> (generated identifier, <title>, active nav, extra <head> markup)
 PAGES = {
-    "home":     ("HomePageHtml",     "CrossInk",                   "home",     ""),
-    "files":    ("FilesPageHtml",    "Files - CrossInk",           "files",    '  <script src="/js/jszip.min.js"></script>'),
-    "settings": ("SettingsPageHtml", "Settings - CrossInk Reader", "settings", ""),
-    "fonts":    ("FontsPageHtml",    "Fonts - CrossInk",           "fonts",    ""),
+    "home":     ("HomePageHtml",     "Ashes of Alexandria",                   "home",     ""),
+    "files":    ("FilesPageHtml",    "Files - Ashes of Alexandria",           "files",    '  <script src="/js/jszip.min.js"></script>'),
+    "settings": ("SettingsPageHtml", "Settings - Ashes of Alexandria", "settings", ""),
+    "fonts":    ("FontsPageHtml",    "Fonts - Ashes of Alexandria",           "fonts",    ""),
 }
 
 PRESERVE_TAGS = "pre|code|textarea|script|style"

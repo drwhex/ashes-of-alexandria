@@ -11,6 +11,14 @@
 #include <cstring>
 #include <iterator>
 #include <string>
+
+// Ashes of Alexandria: over-the-air updates are off by default. When enabled,
+// OTA checks drwhex/ashes-of-alexandria GitHub releases (src/network/OtaUpdater.cpp)
+// for a firmware-x4-pro.bin asset with a newer version tag.
+// Build with -DASHES_APP_CAP_OTA=1 to restore "Check for updates".
+#ifndef ASHES_APP_CAP_OTA
+#define ASHES_APP_CAP_OTA 0
+#endif
 #include <utility>
 #include <vector>
 
@@ -135,7 +143,7 @@ inline uint8_t closestPointSizeIndex(const std::vector<uint8_t>& sizes, const ui
 // are appended after the built-in fonts. Otherwise only built-in fonts are listed.
 inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
   // Built-in font labels (StrId)
-  std::vector<StrId> enumValues = {StrId::STR_LEXEND_DECA, StrId::STR_BITTER};
+  std::vector<StrId> enumValues = {StrId::STR_BITTER};
   // Runtime string labels for SD card fonts
   std::vector<std::string> enumStringValues;
 
@@ -157,7 +165,6 @@ inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
   std::vector<std::string> allStringValues;
   if (sdFontCount > 0) {
     constexpr auto builtinRange = BUILTIN_FONT_POINT_SIZE_RANGE;
-    allStringValues.push_back(fontFamilyLabel(I18N.get(StrId::STR_LEXEND_DECA), builtinRange));
     allStringValues.push_back(fontFamilyLabel(I18N.get(StrId::STR_BITTER), builtinRange));
     allStringValues.insert(allStringValues.end(), enumStringValues.begin(), enumStringValues.end());
   }
@@ -798,7 +805,6 @@ inline std::vector<SettingInfo> buildReaderFontSettingsList(const std::vector<Se
   addSettingByName(settings, allSettings, StrId::STR_LINE_SPACING);
   addSettingByName(settings, allSettings, StrId::STR_WORD_SPACING);
   addSettingByName(settings, allSettings, StrId::STR_TEXT_AA);
-  settings.push_back(SettingInfo::Action(StrId::STR_DOWNLOAD_FONTS, SettingAction::DownloadFonts));
   addSettingByName(settings, allSettings, StrId::STR_SD_FONT_SIZE_RANGE);
   return settings;
 }
@@ -1047,7 +1053,9 @@ inline std::vector<SettingInfo> buildSystemSettingsParentList(const std::vector<
   systemSettings.push_back(SettingInfo::Action(StrId::STR_WIFI_NETWORKS, SettingAction::Network));
   systemSettings.push_back(SettingInfo::Action(StrId::STR_KOREADER_SYNC, SettingAction::KOReaderSync));
   systemSettings.push_back(SettingInfo::Action(StrId::STR_OPDS_SERVERS, SettingAction::OPDSBrowser));
+#if ASHES_APP_CAP_OTA
   systemSettings.push_back(SettingInfo::Action(StrId::STR_CHECK_UPDATES, SettingAction::CheckForUpdates));
+#endif
   systemSettings.push_back(SettingInfo::Action(StrId::STR_SD_FIRMWARE_UPDATE, SettingAction::SdFirmwareUpdate));
   return systemSettings;
 }

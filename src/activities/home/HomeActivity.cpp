@@ -35,7 +35,11 @@
 #include "RecentBookProgress.h"
 #include "RecentBooksStore.h"
 #include "SavedItemsHomeActivity.h"
+#include "components/TouchRegistry.h"
 #include "components/UITheme.h"
+#include "components/UiAppHelpers.h"
+#include "components/icons/listIcons.h"
+#include "components/icons/readingStatsIcons.h"
 #include "components/themes/dashboard/DashboardTheme.h"
 #include "components/themes/lyra/LyraCarouselTheme.h"
 #include "components/themes/minimal/MinimalTheme.h"
@@ -336,6 +340,53 @@ bool isAnyFrontButtonPressed(const MappedInputManager& mappedInput) {
 }
 
 int minimalHomeNavCount(const bool hasCurrentBook) { return hasCurrentBook ? 4 : 3; }
+
+// Ashes of Alexandria: on touch readers the Minimal home shows the Cover Grid
+// bottom icon bar, with Reading stats in place of Library. Readers with front
+// buttons keep the Minimal button hints, which mirror those physical buttons.
+enum MinimalHomeTab { TAB_BROWSE_FILES = 0, TAB_READING_STATS, TAB_FILE_TRANSFER, TAB_SETTINGS, MINIMAL_HOME_TAB_COUNT };
+constexpr int MINIMAL_HOME_TAB_BAND_HEIGHT = 56;
+constexpr int MINIMAL_HOME_TAB_ICON_SIZE = 32;
+
+bool usesMinimalHomeTabs(const MappedInputManager& mappedInput) { return isMinimalTheme() && mappedInput.hasTouch(); }
+
+// Visible tabs in bar order. Reading stats is hidden while tracking is off in
+// settings. Touch ids and the selection index are positions in this list.
+struct MinimalHomeTabs {
+  std::array<MinimalHomeTab, MINIMAL_HOME_TAB_COUNT> tabs{};
+  int count = 0;
+};
+
+MinimalHomeTabs visibleMinimalHomeTabs() {
+  MinimalHomeTabs visible;
+  visible.tabs[visible.count++] = TAB_BROWSE_FILES;
+  if (SETTINGS.shouldTrackReadingStats()) visible.tabs[visible.count++] = TAB_READING_STATS;
+  visible.tabs[visible.count++] = TAB_FILE_TRANSFER;
+  visible.tabs[visible.count++] = TAB_SETTINGS;
+  return visible;
+}
+
+void drawMinimalHomeTabs(const GfxRenderer& renderer, const int selectedTab) {
+  static constexpr const freeink::Icon* ICONS[MINIMAL_HOME_TAB_COUNT] = {&icon_folder_32, &icon_reading_stats_32,
+                                                                        &icon_lyra_transfer_32, &icon_lyra_settings_32};
+  const auto visible = visibleMinimalHomeTabs();
+  const int pageWidth = renderer.getScreenWidth();
+  const int top = renderer.getScreenHeight() - MINIMAL_HOME_TAB_BAND_HEIGHT;
+  const int slotWidth = pageWidth / visible.count;
+  renderer.fillRect(0, top, pageWidth, MINIMAL_HOME_TAB_BAND_HEIGHT, false);
+  for (int i = 0; i < visible.count; ++i) {
+    const int slotX = i * slotWidth;
+    TouchRegistry::getInstance().add(Rect{slotX, top, slotWidth, MINIMAL_HOME_TAB_BAND_HEIGHT}, i,
+                                     TouchRegistry::Item);
+    const int iconX = slotX + (slotWidth - MINIMAL_HOME_TAB_ICON_SIZE) / 2;
+    const int iconY = top + (MINIMAL_HOME_TAB_BAND_HEIGHT - MINIMAL_HOME_TAB_ICON_SIZE) / 2 - 2;
+    drawLucideIcon(renderer, *ICONS[visible.tabs[i]], iconX, iconY);
+    // Same 2 px underline that marks the selected Cover Grid tab.
+    if (i == selectedTab) {
+      renderer.fillRect(iconX - 4, iconY + MINIMAL_HOME_TAB_ICON_SIZE + 4, MINIMAL_HOME_TAB_ICON_SIZE + 8, 2, true);
+    }
+  }
+}
 
 int minimalHomeCoverWidth(int coverHeight) {
   (void)coverHeight;
@@ -1527,15 +1578,15 @@ void HomeActivity::loop() {
 
     switch (mappedInput.wasSwipe()) {
       case MappedInputManager::SwipeDir::Down:
-        minimalHomeNavIndex = 2;
+        minimalHomeNavIndex = usesMinimalHomeTabs(mappedInput) ? visibleMinimalHomeTabs().count - 1 : 2;
         onSettingsOpen();
         return;
       case MappedInputManager::SwipeDir::Right:
-        minimalHomeNavIndex = 1;
+        minimalHomeNavIndex = usesMinimalHomeTabs(mappedInput) ? TAB_BROWSE_FILES : 1;
         onMinimalBrowseOpen();
         return;
       case MappedInputManager::SwipeDir::Up:
-        minimalHomeNavIndex = 0;
+        minimalHomeNavIndex = usesMinimalHomeTabs(mappedInput) ? -1 : 0;
         minimalMenuOpen = true;
         minimalMenuIndex = 0;
         requestUpdate();
@@ -1554,6 +1605,74 @@ void HomeActivity::loop() {
         mappedInput.getHeldTime() >= HOME_BOOK_SWAP_LONG_PRESS_MS) {
       homeBookSwapLongPressHandled = true;
       showNextRecentBookOnHome();
+      return;
+    }
+
+    if (usesMinimalHomeTabs(mappedInput)) {
+      const auto visibleTabs = visibleMinimalHomeTabs();
+      const int tabCount = visibleTabs.count;
+      if (minimalHomeNavIndex >= tabCount) minimalHomeNavIndex = tabCount - 1;
+      auto activateMinimalHomeTab = [this, &visibleTabs](const int slot) {
+        switch (visibleTabs.tabs[slot]) {
+          case TAB_BROWSE_FILES:
+            onFileBrowserOpen();
+            break;
+          case TAB_READING_STATS:
+            onReadingStatsOpen();
+            break;
+          case TAB_FILE_TRANSFER:
+            onFileTransferOpen();
+            break;
+          case TAB_SETTINGS:
+            onSettingsOpen();
+            break;
+          case MINIMAL_HOME_TAB_COUNT:
+            break;
+        }
+      };
+
+      if (mappedInput.wasPressed(MappedInputManager::Button::Up)) {
+        minimalHomeNavIndex = minimalHomeNavIndex < 0
+                                  ? tabCount - 1
+                                  : ButtonNavigator::previousIndex(minimalHomeNavIndex, tabCount);
+        requestUpdate();
+        return;
+      }
+      if (mappedInput.wasPressed(MappedInputManager::Button::Down)) {
+        minimalHomeNavIndex =
+            minimalHomeNavIndex < 0 ? 0 : ButtonNavigator::nextIndex(minimalHomeNavIndex, tabCount);
+        requestUpdate();
+        return;
+      }
+
+      int touchedTab = -1;
+      if (mappedInput.wasItemTouchedDown(touchedTab) && touchedTab >= 0 && touchedTab < tabCount) {
+        if (minimalHomeNavIndex != touchedTab) {
+          minimalHomeNavIndex = touchedTab;
+          requestUpdate();
+        }
+        return;
+      }
+      if (mappedInput.wasItemTapped(touchedTab) && touchedTab >= 0 && touchedTab < tabCount) {
+        minimalHomeNavIndex = touchedTab;
+        activateMinimalHomeTab(touchedTab);
+        return;
+      }
+      int touchedBookIndex = -1;
+      if (mappedInput.wasCoverTapped(touchedBookIndex) && touchedBookIndex >= 0 && !recentBooks.empty()) {
+        minimalHomeNavIndex = -1;
+        onContinueReading();
+        return;
+      }
+      // Confirm opens the tab chosen with Up/Down; with no tab chosen it keeps
+      // Minimal's "continue reading" behaviour.
+      if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+        if (minimalHomeNavIndex >= 0) {
+          activateMinimalHomeTab(minimalHomeNavIndex);
+        } else {
+          onContinueReading();
+        }
+      }
       return;
     }
 
@@ -2114,15 +2233,19 @@ void HomeActivity::render(RenderLock&&) {
                             (isDashboardTheme() || hasAnyBookStats(currentBookStats)) ? &currentBookStats : nullptr,
                             currentBookProgressPercent, &globalStats, currentBookChapterTitle.c_str());
 
-    const int homeNavCount = minimalHomeNavCount(!recentBooks.empty());
-    if (minimalHomeNavIndex >= homeNavCount) {
-      minimalHomeNavIndex = homeNavCount - 1;
-    }
-    if (showMinimalHomeButtonHints(mappedInput)) {
-      MinimalTheme::setHomeButtonHintSelection(minimalHomeNavIndex);
-      GUI.drawButtonHints(renderer, tr(STR_MENU),
-                          SETTINGS.isLibraryFileBrowserSwapped() ? tr(STR_LIBRARY) : tr(STR_BROWSE),
-                          tr(STR_SETTINGS_SHORT), recentBooks.empty() ? "" : tr(STR_READ));
+    if (usesMinimalHomeTabs(mappedInput)) {
+      drawMinimalHomeTabs(renderer, minimalHomeNavIndex);
+    } else {
+      const int homeNavCount = minimalHomeNavCount(!recentBooks.empty());
+      if (minimalHomeNavIndex >= homeNavCount) {
+        minimalHomeNavIndex = homeNavCount - 1;
+      }
+      if (showMinimalHomeButtonHints(mappedInput)) {
+        MinimalTheme::setHomeButtonHintSelection(minimalHomeNavIndex);
+        GUI.drawButtonHints(renderer, tr(STR_MENU),
+                            SETTINGS.isLibraryFileBrowserSwapped() ? tr(STR_LIBRARY) : tr(STR_BROWSE),
+                            tr(STR_SETTINGS_SHORT), recentBooks.empty() ? "" : tr(STR_READ));
+      }
     }
 
     displayHomeBuffer();

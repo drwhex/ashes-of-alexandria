@@ -1,4 +1,8 @@
-## [v1.6.1] - 2026-10-03
+## [v0.0.1] - 2026-10-18
+
+First Ashes of Alexandria build, based on CrossInk v1.6.1. See README.md for the list of changes.
+
+## CrossInk base release (cloned) - 2026-10-03
 
 ### Added
 

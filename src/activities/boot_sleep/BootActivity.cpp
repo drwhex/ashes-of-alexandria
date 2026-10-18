@@ -11,12 +11,11 @@
 #include <cmath>
 #include <cstring>
 
-#include "AppVersion.h"
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "ImageFolderIndex.h"
 #include "fontIds.h"
-#include "images/Logo120.h"
+#include "BootSplashScreen.h"
 
 namespace {
 
@@ -114,24 +113,13 @@ bool tryDrawRotatingBootImage(const GfxRenderer& renderer) {
   return pickAndDraw(true);
 }
 
-void drawDefaultBootLogo(const GfxRenderer& renderer) {
-  const auto pageWidth = renderer.getScreenWidth();
-  const auto pageHeight = renderer.getScreenHeight();
-
-  renderer.clearScreen();
-  renderer.drawImage(Logo120, (pageWidth - 120) / 2, (pageHeight - 120) / 2, 120, 120);
-  renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 70, tr(STR_CROSSINK), true, EpdFontFamily::BOLD);
-  renderer.drawCenteredText(SMALL_FONT_ID, pageHeight / 2 + 95, tr(STR_BOOTING));
-  renderer.drawCenteredText(SMALL_FONT_ID, pageHeight - 30, AppVersion::version());
-}
-
 }  // namespace
 
 void BootActivity::onEnter() {
   Activity::onEnter();
 
   if (!SETTINGS.customBootscreenEnabled || (!tryDrawPinnedBootImage(renderer) && !tryDrawRotatingBootImage(renderer))) {
-    drawDefaultBootLogo(renderer);
+    drawBootSplash(renderer);  // the version is shown in System Info
   }
 
   renderer.displayBuffer();

@@ -50,7 +50,6 @@ enum class SettingAction {
   SdFirmwareUpdate,
   Language,
   KeyboardLayouts,
-  DownloadFonts,
   TtfRendering,
   ClockSync,
 };

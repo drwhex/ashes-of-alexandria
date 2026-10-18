@@ -1,1 +1,3 @@
 .github/workflows/*.lock.yml linguist-generated=true
+# SdFat comes from the registry with LF endings; git apply needs matching patches.
+scripts/sdfat_patches/*.patch eol=lf

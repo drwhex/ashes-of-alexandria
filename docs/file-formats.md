@@ -25,7 +25,7 @@ layout may shift the destination page.
 
 ### Version 6
 
-The v1.6.1 release normalizes development version 8 to version 6, one step
+The v0.0.1 release normalizes development version 8 to version 6, one step
 after v1.6.0. The new per-position filenames and artwork cache keys prevent
 reuse of older combined snapshots.
 
@@ -593,11 +593,11 @@ their coordinates; older full and suspended partial section caches rebuild so
 existing books receive the new layout. The CSS rule cache moves to version `19`
 so `display: inline` rules retain their meaning.
 
-The v1.6.1 release candidate used version `80` and partial marker `0xC1`: development
+The v0.0.1 release candidate used version `80` and partial marker `0xC1`: development
 versions `78` and `79` used the older image payload, and earlier release
 preparation used partial marker `0x80`. Reusing those identifiers could accept
 incompatible saved pages. Version `81` and marker `0xC2` added the root-style
-indentation change; the final v1.6.1 release uses version `83` and marker `0xC4`
+indentation change; the final v0.0.1 release uses version `83` and marker `0xC4`
 for the further layout changes described above. All of those older caches rebuild
 automatically.
 
