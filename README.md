@@ -1,5 +1,8 @@
 # Ashes of Alexandria
 
+> **Note:** this is an amateur hobby project, developed with the help of AI tools.
+> It is provided as is, without any warranty. Use it at your own risk.
+
 Ashes of Alexandria is custom firmware for the Xteink X4 Pro e-reader (also builds for X3, X4 and X4 Classic).
 
 **Source code origin.** This project is based on [CrossInk](https://github.com/uxjulia/CrossInk) by Julia Nguyen
@@ -19,9 +22,9 @@ Changes in Ashes of Alexandria compared to CrossInk:
 Internal identifiers (`CROSSINK_*` build flags, cache formats, file paths on the SD card) keep their upstream names
 to stay compatible with CrossInk data and tools.
 
-
 ---
 
 ## Notice on Contributions
 
-This repository's author suggests to check original crossink [discussions](https://github.com/uxjulia/CrossInk/discussions), Don't hesitate supporting uxjulia on Ko-fi.
+For feature ideas and discussion, please use the original CrossInk [discussions](https://github.com/uxjulia/CrossInk/discussions).
+If you enjoy this firmware, consider supporting the CrossInk author, uxjulia, on [Ko-fi](https://ko-fi.com/uxjulia).
