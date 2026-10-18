@@ -1249,7 +1249,7 @@ class SimulatorSmokeTest {
             RECENT_BOOKS.addOrUpdateBook(path, path, {}, {}, RecentBook::CoverState::Missing);
           }
           SETTINGS.uiTheme = CrossPointSettings::LYRA_CAROUSEL;
-          SETTINGS.uiScale = CrossPointSettings::UI_SCALE_SMALL;
+          SETTINGS.uiScale = CrossPointSettings::UI_SCALE_LARGE;
           UITheme::getInstance().reload();
           homeThemeBookPath = "/books/theme-first.txt";
           activityManager.replaceActivity(std::make_unique<HomeActivity>(
@@ -1927,8 +1927,7 @@ class SimulatorSmokeTest {
         }
         {
           RenderLock lock;
-          SETTINGS.uiScale =
-              (frontlightLayoutPass / 64) ? CrossPointSettings::UI_SCALE_LARGE : CrossPointSettings::UI_SCALE_SMALL;
+          SETTINGS.uiScale = CrossPointSettings::UI_SCALE_LARGE;
           SETTINGS.uiTheme = (frontlightLayoutPass / 8) % 8;
           renderer.setOrientation(static_cast<GfxRenderer::Orientation>((frontlightLayoutPass / 2) % 4));
           UITheme::getInstance().reload();

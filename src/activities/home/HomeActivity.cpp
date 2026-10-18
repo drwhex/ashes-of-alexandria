@@ -342,16 +342,25 @@ bool isAnyFrontButtonPressed(const MappedInputManager& mappedInput) {
 int minimalHomeNavCount(const bool hasCurrentBook) { return hasCurrentBook ? 4 : 3; }
 
 // Ashes of Alexandria: on touch readers the Minimal home shows the Cover Grid
-// bottom icon bar, with Reading stats in place of Library. Readers with front
-// buttons keep the Minimal button hints, which mirror those physical buttons.
-enum MinimalHomeTab { TAB_BROWSE_FILES = 0, TAB_READING_STATS, TAB_FILE_TRANSFER, TAB_SETTINGS, MINIMAL_HOME_TAB_COUNT };
+// bottom icon bar: Files, Reading stats, OPDS, File transfer, Settings.
+// Readers with front buttons keep the Minimal button hints, which mirror those
+// physical buttons.
+enum MinimalHomeTab {
+  TAB_BROWSE_FILES = 0,
+  TAB_READING_STATS,
+  TAB_OPDS,
+  TAB_FILE_TRANSFER,
+  TAB_SETTINGS,
+  MINIMAL_HOME_TAB_COUNT
+};
 constexpr int MINIMAL_HOME_TAB_BAND_HEIGHT = 56;
 constexpr int MINIMAL_HOME_TAB_ICON_SIZE = 32;
 
 bool usesMinimalHomeTabs(const MappedInputManager& mappedInput) { return isMinimalTheme() && mappedInput.hasTouch(); }
 
 // Visible tabs in bar order. Reading stats is hidden while tracking is off in
-// settings. Touch ids and the selection index are positions in this list.
+// settings, OPDS while no server is configured. The "swap library/files" setting reverses the bar so Settings comes
+// first. Touch ids and the selection index are positions in this list.
 struct MinimalHomeTabs {
   std::array<MinimalHomeTab, MINIMAL_HOME_TAB_COUNT> tabs{};
   int count = 0;
@@ -361,24 +370,41 @@ MinimalHomeTabs visibleMinimalHomeTabs() {
   MinimalHomeTabs visible;
   visible.tabs[visible.count++] = TAB_BROWSE_FILES;
   if (SETTINGS.shouldTrackReadingStats()) visible.tabs[visible.count++] = TAB_READING_STATS;
+  if (OPDS_STORE.hasServers()) visible.tabs[visible.count++] = TAB_OPDS;
   visible.tabs[visible.count++] = TAB_FILE_TRANSFER;
   visible.tabs[visible.count++] = TAB_SETTINGS;
+  if (SETTINGS.isLibraryFileBrowserSwapped()) {
+    std::reverse(visible.tabs.begin(), visible.tabs.begin() + visible.count);
+  }
   return visible;
 }
 
+int minimalHomeTabSlot(const MinimalHomeTab tab) {
+  const auto visible = visibleMinimalHomeTabs();
+  for (int i = 0; i < visible.count; ++i) {
+    if (visible.tabs[i] == tab) return i;
+  }
+  return -1;
+}
+
 void drawMinimalHomeTabs(const GfxRenderer& renderer, const int selectedTab) {
-  static constexpr const freeink::Icon* ICONS[MINIMAL_HOME_TAB_COUNT] = {&icon_folder_32, &icon_reading_stats_32,
-                                                                        &icon_lyra_transfer_32, &icon_lyra_settings_32};
+  static constexpr const freeink::Icon* ICONS[MINIMAL_HOME_TAB_COUNT] = {
+      &icon_folder_32, &icon_reading_stats_32, &icon_lyra_library_32, &icon_lyra_transfer_32, &icon_lyra_settings_32};
   const auto visible = visibleMinimalHomeTabs();
   const int pageWidth = renderer.getScreenWidth();
   const int top = renderer.getScreenHeight() - MINIMAL_HOME_TAB_BAND_HEIGHT;
-  const int slotWidth = pageWidth / visible.count;
+  // The icon group spans exactly the cover preview width: the first icon sits
+  // on the cover's left edge, the last on its right edge, the rest evenly between.
+  const int groupWidth = std::min(MinimalMetrics::homeCoverWidth, pageWidth);
+  const int groupX = (pageWidth - groupWidth) / 2;
+  const int step = visible.count > 1 ? (groupWidth - MINIMAL_HOME_TAB_ICON_SIZE) / (visible.count - 1) : 0;
+  const int slotWidth = visible.count > 1 ? step : groupWidth;
   renderer.fillRect(0, top, pageWidth, MINIMAL_HOME_TAB_BAND_HEIGHT, false);
   for (int i = 0; i < visible.count; ++i) {
-    const int slotX = i * slotWidth;
+    const int iconX = visible.count > 1 ? groupX + i * step : groupX + (groupWidth - MINIMAL_HOME_TAB_ICON_SIZE) / 2;
+    const int slotX = iconX + MINIMAL_HOME_TAB_ICON_SIZE / 2 - slotWidth / 2;
     TouchRegistry::getInstance().add(Rect{slotX, top, slotWidth, MINIMAL_HOME_TAB_BAND_HEIGHT}, i,
                                      TouchRegistry::Item);
-    const int iconX = slotX + (slotWidth - MINIMAL_HOME_TAB_ICON_SIZE) / 2;
     const int iconY = top + (MINIMAL_HOME_TAB_BAND_HEIGHT - MINIMAL_HOME_TAB_ICON_SIZE) / 2 - 2;
     drawLucideIcon(renderer, *ICONS[visible.tabs[i]], iconX, iconY);
     // Same 2 px underline that marks the selected Cover Grid tab.
@@ -1578,11 +1604,11 @@ void HomeActivity::loop() {
 
     switch (mappedInput.wasSwipe()) {
       case MappedInputManager::SwipeDir::Down:
-        minimalHomeNavIndex = usesMinimalHomeTabs(mappedInput) ? visibleMinimalHomeTabs().count - 1 : 2;
+        minimalHomeNavIndex = usesMinimalHomeTabs(mappedInput) ? minimalHomeTabSlot(TAB_SETTINGS) : 2;
         onSettingsOpen();
         return;
       case MappedInputManager::SwipeDir::Right:
-        minimalHomeNavIndex = usesMinimalHomeTabs(mappedInput) ? TAB_BROWSE_FILES : 1;
+        minimalHomeNavIndex = usesMinimalHomeTabs(mappedInput) ? minimalHomeTabSlot(TAB_BROWSE_FILES) : 1;
         onMinimalBrowseOpen();
         return;
       case MappedInputManager::SwipeDir::Up:
@@ -1619,6 +1645,9 @@ void HomeActivity::loop() {
             break;
           case TAB_READING_STATS:
             onReadingStatsOpen();
+            break;
+          case TAB_OPDS:
+            onOpdsBrowserOpen();
             break;
           case TAB_FILE_TRANSFER:
             onFileTransferOpen();

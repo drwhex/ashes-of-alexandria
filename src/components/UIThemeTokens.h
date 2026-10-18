@@ -16,16 +16,9 @@
 
 namespace UiThemeTokensDetail {
 inline int16_t scaledListMetric(const int metric) {
+  // Metrics are authored for the 10 pt UI font; the only UI scale (Large) uses 12 pt.
   constexpr int baseFontSize = 10;
-  int scaleFontSize = baseFontSize;
-  switch (SETTINGS.uiScale) {
-    case CrossPointSettings::UI_SCALE_LARGE:
-      scaleFontSize = 12;
-      break;
-    case CrossPointSettings::UI_SCALE_SMALL:
-    default:
-      break;
-  }
+  constexpr int scaleFontSize = 12;
   return static_cast<int16_t>((metric * scaleFontSize + baseFontSize / 2) / baseFontSize);
 }
 }  // namespace UiThemeTokensDetail

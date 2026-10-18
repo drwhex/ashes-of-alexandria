@@ -433,8 +433,9 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   };
 
   // UI scale for list-style screens: sizes list fonts and row heights
-  // together so touch targets grow uniformly.
-  enum UI_SCALE { UI_SCALE_SMALL = 0, UI_SCALE_LARGE = 1, UI_SCALE_COUNT };
+  // together so touch targets grow uniformly. Ashes of Alexandria ships only
+  // the Large scale; it keeps raw value 1 so saved settings stay compatible.
+  enum UI_SCALE { UI_SCALE_LARGE = 1 };
   static uint8_t defaultUiScale();
 
   // Sleep screen settings
@@ -571,7 +572,7 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   // stored a point size. SdCardFontSystem resolves it once the family catalog
   // is available, then persists readerFontPointSize.
   uint8_t legacySdFontSizeStep = UINT8_MAX;
-  uint8_t sdFontSizeRange = SD_FONT_RANGE_TINY;
+  uint8_t sdFontSizeRange = SD_FONT_RANGE_XLARGE;
   uint8_t lineSpacing = NORMAL;  // migration only; new saves use lineHeightPercent
   uint8_t lineHeightPercent = 100;
   uint8_t wordSpacing = 0;

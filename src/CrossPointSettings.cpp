@@ -329,7 +329,7 @@ void CrossPointSettings::validateReaderFrontButtonMapping(CrossPointSettings& se
   }
 }
 
-uint8_t CrossPointSettings::defaultUiScale() { return UI_SCALE_SMALL; }
+uint8_t CrossPointSettings::defaultUiScale() { return UI_SCALE_LARGE; }
 
 uint8_t CrossPointSettings::sleepTimeoutEnumToMinutes(const uint8_t legacyValue) {
   switch (legacyValue) {
@@ -555,8 +555,15 @@ bool CrossPointSettings::fromJson(JsonVariantConst doc, bool importingCrossPoint
 
     const uint8_t fieldDefault = this->*(info.valuePtr);
     uint8_t value = doc[info.key] | fieldDefault;
-    if (strcmp(info.key, "sdFontSizeRange") == 0 && value == SD_FONT_RANGE_NO_EMOJI_LEGACY) {
-      value = SD_FONT_RANGE_ALL;
+    // Ashes of Alexandria: the SD font size range is hidden from the menu, so
+    // every device is pinned to the 14-20pt range regardless of what was saved.
+    if (strcmp(info.key, "sdFontSizeRange") == 0 && value != SD_FONT_RANGE_XLARGE) {
+      value = SD_FONT_RANGE_XLARGE;
+      needsResave = true;
+    }
+    // Likewise the UI scale menu item is hidden and only Large remains.
+    if (strcmp(info.key, "uiScale") == 0 && value != UI_SCALE_LARGE) {
+      value = UI_SCALE_LARGE;
       needsResave = true;
     }
     if (isSleepScreenSetting(info)) {

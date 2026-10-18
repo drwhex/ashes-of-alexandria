@@ -40,9 +40,9 @@ const std::vector<SettingInfo>& getBaseSettingsList() {
             .withEnumRawValues({CrossPointSettings::UI_THEME::MINIMAL, CrossPointSettings::UI_THEME::LYRA}));
     add(SettingInfo::Toggle(StrId::STR_SWAP_LIBRARY_FILE_BROWSER, &CrossPointSettings::swapLibraryFileBrowser,
                             "swapLibraryFileBrowser", StrId::STR_CAT_DISPLAY));
-    add(SettingInfo::Enum(StrId::STR_UI_SCALE, &CrossPointSettings::uiScale, {StrId::STR_SMALL, StrId::STR_LARGE},
-                          "uiScale", StrId::STR_CAT_DISPLAY)
-            .withEnumRawValues({CrossPointSettings::UI_SCALE_SMALL, CrossPointSettings::UI_SCALE_LARGE}));
+    add(SettingInfo::Enum(StrId::STR_UI_SCALE, &CrossPointSettings::uiScale, {StrId::STR_LARGE}, "uiScale",
+                          StrId::STR_CAT_DISPLAY)
+            .withEnumRawValues({CrossPointSettings::UI_SCALE_LARGE}));
     add(SettingInfo::Toggle(StrId::STR_LIBRARY_USE_METADATA, &CrossPointSettings::libraryUseMetadata,
                             "libraryUseMetadata", StrId::STR_CAT_DISPLAY));
     add(SettingInfo::Toggle(StrId::STR_SUNLIGHT_FADING_FIX, &CrossPointSettings::fadingFix, "fadingFix",
@@ -199,7 +199,7 @@ const std::vector<SettingInfo>& getBaseSettingsList() {
     add(buildShortcutSetting(StrId::STR_SIDE_BUTTON_CHORD, &CrossPointSettings::sideButtonChordAction,
                              "sideButtonChordAction", ShortcutOptionCatalog::ButtonChord));
     add(SettingInfo::Enum(StrId::STR_IN_READER, &CrossPointSettings::homeButtonInReaderEnabled,
-                          {StrId::STR_ENABLED, StrId::STR_DISABLED}, "homeButtonInReaderEnabled",
+                          {StrId::STR_ON, StrId::STR_OFF}, "homeButtonInReaderEnabled",
                           StrId::STR_CAT_CONTROLS)
             .withEnumRawValues({1, 0}));
     add(buildHomeButtonActionSetting(StrId::STR_HOME_BUTTON_TAP, &CrossPointSettings::homeButtonTapAction,

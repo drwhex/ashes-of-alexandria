@@ -1,3 +1,10 @@
+## [v0.0.2] - 2026-10-18
+
+- Default UI theme: fixed the width of the icon bar on the home screen; it is no longer covered by the sleep icon in "Quick resume" mode.
+- Russian localization improvements.
+- Removed: UI scale selection. Only the Large UI scale remains; the Small scale is removed and saved settings are switched to Large at startup.
+- Hidden: the "Font size range" setting for SD-card TTF fonts. It is fixed to 14–20 pt and forced at startup.
+
 ## [v0.0.1] - 2026-10-18
 
 First Ashes of Alexandria build, based on CrossInk v1.6.1. See README.md for the list of changes.

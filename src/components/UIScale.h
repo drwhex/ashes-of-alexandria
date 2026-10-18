@@ -12,22 +12,11 @@ struct UIScaleSpec {
   int titleFontId;
 };
 
+// Ashes of Alexandria ships only the Large scale.
 inline UIScaleSpec uiScaleSpec() {
   UIScaleSpec spec{};
-  switch (SETTINGS.uiScale) {
-    case CrossPointSettings::UI_SCALE_SMALL:
-      spec.bodyFontId = UI_10_FONT_ID;
-      spec.titleFontId = UI_12_FONT_ID;
-      break;
-    case CrossPointSettings::UI_SCALE_LARGE:
-      spec.bodyFontId = UI_12_FONT_ID;
-      spec.titleFontId = UI_12_FONT_ID;
-      break;
-    default:
-      spec.bodyFontId = UI_12_FONT_ID;
-      spec.titleFontId = UI_12_FONT_ID;
-      break;
-  }
+  spec.bodyFontId = UI_12_FONT_ID;
+  spec.titleFontId = UI_12_FONT_ID;
   spec.smallFontId = spec.bodyFontId;
   return spec;
 }

@@ -805,7 +805,8 @@ inline std::vector<SettingInfo> buildReaderFontSettingsList(const std::vector<Se
   addSettingByName(settings, allSettings, StrId::STR_LINE_SPACING);
   addSettingByName(settings, allSettings, StrId::STR_WORD_SPACING);
   addSettingByName(settings, allSettings, StrId::STR_TEXT_AA);
-  addSettingByName(settings, allSettings, StrId::STR_SD_FONT_SIZE_RANGE);
+  // Ashes of Alexandria: SD font size range is hidden from the menu while testers
+  // check reader font sizing without it; the stored value still applies.
   return settings;
 }
 
@@ -998,7 +999,7 @@ inline std::vector<SettingInfo> buildGroupedDisplaySettingsList(const std::vecto
   if (SETTINGS.supportsLibraryFileBrowserSwap()) {
     addDisplaySetting(StrId::STR_SWAP_LIBRARY_FILE_BROWSER);
   }
-  addDisplaySetting(StrId::STR_UI_SCALE);
+  // Ashes of Alexandria: UI scale is fixed to Large and hidden from the menu.
   addDisplaySetting(StrId::STR_SUNLIGHT_FADING_FIX);
 
   return displaySettings;
